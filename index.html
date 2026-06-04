@@ -1,22 +1,464 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tracker de Hábitos</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #ffffff;
+      --bg2: #f5f5f3;
+      --bg3: #efefec;
+      --text: #1a1a18;
+      --text2: #6b6b67;
+      --border: rgba(0,0,0,0.12);
+      --border2: rgba(0,0,0,0.22);
+      --radius: 8px;
+      --radius-lg: 12px;
+      --blue: #378ADD;
+      --red: #E24B4A;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1a;
+        --bg2: #252523;
+        --bg3: #2e2e2b;
+        --text: #f0efe8;
+        --text2: #9a9a94;
+        --border: rgba(255,255,255,0.1);
+        --border2: rgba(255,255,255,0.2);
+      }
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg3); color: var(--text); min-height: 100vh; }
+    .app { max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem; }
+    .center { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 18px; text-align: center; }
+    h1 { font-size: 26px; font-weight: 600; }
+    h2 { font-size: 20px; font-weight: 600; }
+    h3 { font-size: 16px; font-weight: 500; }
+    .subtitle { font-size: 14px; color: var(--text2); }
+    .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; gap: 12px; flex-wrap: wrap; }
+    .user-row { display: flex; align-items: center; gap: 8px; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+    .avatar-init { width: 36px; height: 36px; border-radius: 50%; background: #e3f0fb; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; color: #185FA5; }
+    .user-name { font-size: 13px; color: var(--text2); }
+    .btn { background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 8px 18px; font-size: 14px; cursor: pointer; color: var(--text); font-family: inherit; transition: background 0.15s; }
+    .btn:hover { background: var(--bg2); }
+    .btn-icon { padding: 6px 10px; font-size: 16px; }
+    .btn-google { display: flex; align-items: center; gap: 10px; padding: 12px 28px; font-size: 15px; font-weight: 500; }
+    .btn-primary { font-size: 15px; padding: 11px 32px; font-weight: 500; }
+    .tabs { display: flex; gap: 6px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .tab { padding: 7px 16px; border-radius: var(--radius); border: 0.5px solid var(--border); background: transparent; font-size: 13px; cursor: pointer; color: var(--text2); font-family: inherit; transition: background 0.15s; }
+    .tab.active { background: var(--bg2); color: var(--text); border-color: var(--border2); font-weight: 500; }
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 1rem; }
+    .stat-card { background: var(--bg2); border-radius: var(--radius); padding: 12px; }
+    .stat-label { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+    .stat-value { font-size: 24px; font-weight: 600; color: var(--text); }
+    .habit-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 0.5px solid var(--border); }
+    .habit-row:last-child { border-bottom: none; }
+    .habit-name { font-size: 15px; color: var(--text); }
+    .toggle { width: 46px; height: 27px; border-radius: 14px; border: none; cursor: pointer; transition: background 0.2s; position: relative; flex-shrink: 0; }
+    .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 21px; height: 21px; border-radius: 50%; background: white; transition: transform 0.2s; }
+    .toggle.done { background: var(--blue); }
+    .toggle.done::after { transform: translateX(19px); }
+    .toggle.not-done { background: #c5c5c0; }
+    .habit-tag { display: flex; align-items: center; justify-content: space-between; background: var(--bg2); border-radius: var(--radius); padding: 7px 11px; font-size: 13px; color: var(--text); margin-bottom: 6px; }
+    .del-btn { cursor: pointer; background: none; border: none; color: var(--text2); font-size: 17px; padding: 0 4px; line-height: 1; }
+    .del-btn:hover { color: var(--red); }
+    .input-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .input-row input, input[type=text], input[type=date] {
+      background: var(--bg2); border: 0.5px solid var(--border2); border-radius: var(--radius);
+      padding: 8px 12px; font-size: 14px; color: var(--text); font-family: inherit; outline: none;
+    }
+    .input-row input { flex: 1; }
+    input[type=text]:focus, input[type=date]:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(55,138,221,0.15); }
+    .add-btn { flex-shrink: 0; padding: 8px 14px; font-size: 13px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; font-family: inherit; }
+    .add-btn:hover { background: var(--bg2); }
+    .year-grid { display: flex; gap: 3px; flex-wrap: wrap; margin-bottom: 1rem; }
+    .day-cell { width: 13px; height: 13px; border-radius: 2px; cursor: pointer; flex-shrink: 0; transition: opacity 0.15s; }
+    .day-cell:hover { opacity: 0.7; }
+    .day-cell.done { background: var(--blue); }
+    .day-cell.not-done { background: var(--red); }
+    .day-cell.today-done { background: var(--blue); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--blue); }
+    .day-cell.today-notdone { background: var(--red); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--red); }
+    .day-cell.future { background: var(--bg2); border: 0.5px solid var(--border); cursor: default; }
+    .legend { display: flex; gap: 18px; font-size: 12px; color: var(--text2); margin-bottom: 1rem; align-items: center; flex-wrap: wrap; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: middle; }
+    .grid-section { margin-bottom: 1.5rem; }
+    .grid-habit-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 7px; display: flex; align-items: center; gap: 8px; }
+    .grid-stats { font-size: 12px; color: var(--text2); font-weight: 400; }
+    .archive-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 8px; }
+    .empty { text-align: center; padding: 2.5rem; color: var(--text2); font-size: 14px; }
+    .err-msg { font-size: 13px; color: var(--red); margin-top: 8px; }
+    .loading-msg { font-size: 14px; color: var(--text2); }
+    .spinner { width: 28px; height: 28px; border: 2.5px solid var(--border2); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .today-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="center">
+      <div class="spinner"></div>
+      <div class="loading-msg">Cargando...</div>
+    </div>
+  </div>
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyAVDnttF2E0XwhOiRMQP-TEjf7_h1ybSoA",
-  authDomain: "habitos-bc22e.firebaseapp.com",
-  databaseURL: "https://habitos-bc22e-default-rtdb.firebaseio.com",
-  projectId: "habitos-bc22e",
-  storageBucket: "habitos-bc22e.firebasestorage.app",
-  messagingSenderId: "167460920414",
-  appId: "1:167460920414:web:7f7a39a4e4179fdc49e8cf",
-  measurementId: "G-PM5YZDYEDE"
-};
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+    import { getDatabase, ref, set, get } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+    const firebaseConfig = {
+      apiKey: "AIzaSyAVDnttF2E0XwhOiRMQP-TEjf7_h1ybSoA",
+      authDomain: "habitos-bc22e.firebaseapp.com",
+      databaseURL: "https://habitos-bc22e-default-rtdb.firebaseio.com",
+      projectId: "habitos-bc22e",
+      storageBucket: "habitos-bc22e.firebasestorage.app",
+      messagingSenderId: "167460920414",
+      appId: "1:167460920414:web:7f7a39a4e4179fdc49e8cf"
+    };
+
+    const fbApp = initializeApp(firebaseConfig);
+    const auth = getAuth(fbApp);
+    const db = getDatabase(fbApp);
+
+    let currentUser = null;
+    let userData = { habits: [], startDate: null, logs: {}, cycles: [] };
+    let currentTab = 'today';
+    const app = document.getElementById('app');
+
+    const todayStr = () => new Date().toISOString().slice(0, 10);
+
+    function dateOfDay(startDate, idx) {
+      const s = new Date(startDate + 'T12:00:00');
+      return new Date(s.getTime() + idx * 86400000).toISOString().slice(0, 10);
+    }
+
+    function getDayIndex(startDate, dateStr) {
+      const s = new Date(startDate + 'T12:00:00');
+      const d = new Date(dateStr + 'T12:00:00');
+      return Math.floor((d - s) / 86400000);
+    }
+
+    function userRef(path) {
+      return ref(db, `users/${currentUser.uid}/${path}`);
+    }
+
+    async function loadUserData() {
+      const snap = await get(userRef('data'));
+      if (snap.exists()) {
+        userData = snap.val();
+        if (!userData.habits) userData.habits = [];
+        if (!userData.logs) userData.logs = {};
+        if (!userData.cycles) userData.cycles = [];
+      } else {
+        userData = { habits: [], startDate: null, logs: {}, cycles: [] };
+      }
+    }
+
+    async function saveUserData() {
+      await set(userRef('data'), userData);
+    }
+
+    /* ── LOGIN ── */
+    function showLoginScreen() {
+      app.innerHTML = `
+        <div class="center">
+          <svg width="52" height="52" viewBox="0 0 52 52" fill="none" aria-hidden="true">
+            <rect width="52" height="52" rx="14" fill="#378ADD" opacity="0.15"/>
+            <path d="M16 26h20M26 16v20" stroke="#378ADD" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+          <h1>Tracker de hábitos</h1>
+          <p class="subtitle" style="max-width:320px">Iniciá sesión con Google para guardar tus hábitos y seguirlos desde cualquier dispositivo.</p>
+          <button class="btn btn-google" id="btn-google">
+            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+              <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 14.013 17.64 11.706 17.64 9.2z"/>
+              <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+              <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+              <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/>
+            </svg>
+            Continuar con Google
+          </button>
+          <div id="login-err" class="err-msg"></div>
+        </div>`;
+      document.getElementById('btn-google').onclick = async () => {
+        document.getElementById('login-err').textContent = '';
+        try {
+          await signInWithPopup(auth, new GoogleAuthProvider());
+        } catch (e) {
+          document.getElementById('login-err').textContent = 'Error: ' + (e.message || 'No se pudo iniciar sesión');
+        }
+      };
+    }
+
+    /* ── SETUP ── */
+    function showSetupScreen() {
+      window._setupHabits = userData.habits.length ? [...userData.habits] : [];
+      const startVal = userData.startDate || todayStr();
+
+      app.innerHTML = `
+        <div class="header">
+          <div>
+            <h1>Configurar hábitos</h1>
+            <p class="subtitle">Definí tus hábitos para los próximos 365 días</p>
+          </div>
+          ${userChip()}
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:12px">Tus hábitos</h3>
+          <div id="setup-list"></div>
+          <div class="input-row">
+            <input type="text" id="new-habit-inp" placeholder="Nombre del hábito..." />
+            <button class="add-btn" id="btn-add"><i class="ti ti-plus"></i> Agregar</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:10px">Fecha de inicio</h3>
+          <input type="date" id="start-date-inp" value="${startVal}" style="width:100%;max-width:220px" />
+        </div>
+        <button class="btn btn-primary" id="btn-start"><i class="ti ti-player-play"></i> Comenzar</button>
+        <div id="setup-err" class="err-msg"></div>`;
+
+      function renderList() {
+        document.getElementById('setup-list').innerHTML = window._setupHabits.map((h, i) => `
+          <div class="habit-tag">
+            <span>${h.name}</span>
+            <button class="del-btn" data-i="${i}"><i class="ti ti-x"></i></button>
+          </div>`).join('');
+        document.querySelectorAll('.del-btn[data-i]').forEach(b => {
+          b.onclick = () => { window._setupHabits.splice(+b.dataset.i, 1); renderList(); };
+        });
+      }
+
+      function addHabit() {
+        const inp = document.getElementById('new-habit-inp');
+        const v = inp.value.trim();
+        if (!v) return;
+        window._setupHabits.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: v });
+        inp.value = '';
+        renderList();
+      }
+
+      document.getElementById('btn-add').onclick = addHabit;
+      document.getElementById('new-habit-inp').addEventListener('keydown', e => { if (e.key === 'Enter') addHabit(); });
+      document.getElementById('btn-start').onclick = async () => {
+        if (!window._setupHabits.length) { document.getElementById('setup-err').textContent = 'Agregá al menos un hábito.'; return; }
+        const startDate = document.getElementById('start-date-inp').value || todayStr();
+        if (userData.habits.length && userData.startDate) {
+          const alreadySaved = (userData.cycles || []).some(c => c.startDate === userData.startDate);
+          if (!alreadySaved && Object.keys(userData.logs || {}).length > 0) {
+            userData.cycles = userData.cycles || [];
+            userData.cycles.push({ startDate: userData.startDate, endDate: todayStr(), habits: userData.habits, logs: userData.logs, savedAt: todayStr() });
+          }
+        }
+        userData.habits = window._setupHabits;
+        userData.startDate = startDate;
+        userData.logs = {};
+        await saveUserData();
+        showMainApp();
+      };
+      renderList();
+      bindLogout();
+    }
+
+    /* ── MAIN APP ── */
+    function showMainApp() {
+      checkCycleEnd();
+      const todayIdx = getDayIndex(userData.startDate, todayStr());
+      const daysLeft = 365 - Math.min(todayIdx + 1, 365);
+
+      app.innerHTML = `
+        <div class="header">
+          <div>
+            <h1>Mis hábitos</h1>
+            <p class="subtitle" id="main-subtitle">Día ${Math.min(todayIdx + 1, 365)} de 365 · ${daysLeft} días restantes</p>
+          </div>
+          <div class="user-row">
+            ${currentUser.photoURL ? `<img src="${currentUser.photoURL}" class="avatar" alt="perfil"/>` : `<div class="avatar-init">${(currentUser.displayName || 'U')[0]}</div>`}
+            <span class="user-name">${(currentUser.displayName || '').split(' ')[0]}</span>
+            <button class="btn btn-icon" id="btn-config" title="Configurar"><i class="ti ti-settings"></i></button>
+            <button class="btn btn-icon" id="btn-logout" title="Cerrar sesión"><i class="ti ti-logout"></i></button>
+          </div>
+        </div>
+        <div class="tabs">
+          <button class="tab active" id="tab-btn-today" onclick="window._tab('today')">Hoy</button>
+          <button class="tab" id="tab-btn-grid" onclick="window._tab('grid')">Gráfico 365</button>
+          <button class="tab" id="tab-btn-archive" onclick="window._tab('archive')">Historial</button>
+        </div>
+        <div id="tab-content"></div>`;
+
+      document.getElementById('btn-config').onclick = showSetupScreen;
+      document.getElementById('btn-logout').onclick = () => signOut(auth);
+
+      window._tab = (tab) => {
+        currentTab = tab;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        const el = document.getElementById('tab-btn-' + tab);
+        if (el) el.classList.add('active');
+        if (tab === 'today') renderTodayTab();
+        else if (tab === 'grid') renderGridTab();
+        else renderArchiveTab();
+      };
+
+      window._toggleHabit = async (habitId, dateStr) => {
+        if (!userData.logs[dateStr]) userData.logs[dateStr] = {};
+        userData.logs[dateStr][habitId] = !userData.logs[dateStr][habitId];
+        await saveUserData();
+        if (currentTab === 'today') renderTodayTab();
+        else if (currentTab === 'grid') renderGridTab();
+      };
+
+      window._tab('today');
+    }
+
+    function checkCycleEnd() {
+      if (!userData.startDate) return;
+      const todayIdx = getDayIndex(userData.startDate, todayStr());
+      if (todayIdx >= 365) {
+        const alreadySaved = (userData.cycles || []).some(c => c.startDate === userData.startDate);
+        if (!alreadySaved) {
+          userData.cycles = userData.cycles || [];
+          userData.cycles.push({ startDate: userData.startDate, endDate: dateOfDay(userData.startDate, 364), habits: userData.habits, logs: userData.logs, savedAt: todayStr() });
+          userData.startDate = dateOfDay(userData.startDate, 365);
+          userData.logs = {};
+          saveUserData();
+          setTimeout(() => alert('¡Completaste 365 días! El ciclo se guardó en el historial y comenzó uno nuevo.'), 400);
+        }
+      }
+    }
+
+    function renderTodayTab() {
+      const today = todayStr();
+      const todayIdx = getDayIndex(userData.startDate, today);
+      const log = userData.logs[today] || {};
+      const done = userData.habits.filter(h => log[h.id]).length;
+
+      let totalDone = 0, totalPossible = 0;
+      for (let i = 0; i <= Math.min(todayIdx, 364); i++) {
+        const d = dateOfDay(userData.startDate, i);
+        userData.habits.forEach(h => { totalPossible++; if (userData.logs[d] && userData.logs[d][h.id]) totalDone++; });
+      }
+      const pct = totalPossible > 0 ? Math.round(totalDone / totalPossible * 100) : 0;
+
+      let bestStreak = 0, cur = 0;
+      for (let i = 0; i <= Math.min(todayIdx, 364); i++) {
+        const d = dateOfDay(userData.startDate, i);
+        const allDone = userData.habits.every(h => userData.logs[d] && userData.logs[d][h.id]);
+        if (allDone) { cur++; bestStreak = Math.max(bestStreak, cur); } else cur = 0;
+      }
+
+      const fmtDate = new Date(today + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+      document.getElementById('tab-content').innerHTML = `
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-label">Días registrados</div><div class="stat-value">${Math.min(todayIdx + 1, 365)}</div></div>
+          <div class="stat-card"><div class="stat-label">Cumplimiento</div><div class="stat-value">${pct}%</div></div>
+          <div class="stat-card"><div class="stat-label">Mejor racha</div><div class="stat-value">${bestStreak}d</div></div>
+        </div>
+        <div class="card">
+          <div class="today-header">
+            <h3>${fmtDate.charAt(0).toUpperCase() + fmtDate.slice(1)}</h3>
+            <span class="subtitle">${done}/${userData.habits.length} completados</span>
+          </div>
+          ${userData.habits.map(h => `
+            <div class="habit-row">
+              <span class="habit-name">${h.name}</span>
+              <button class="toggle ${log[h.id] ? 'done' : 'not-done'}"
+                onclick="window._toggleHabit('${h.id}','${today}')"
+                aria-label="${log[h.id] ? 'Marcar como no hecho' : 'Marcar como hecho'}"></button>
+            </div>`).join('')}
+        </div>`;
+    }
+
+    function renderGridTab() {
+      const today = todayStr();
+      const todayIdx = getDayIndex(userData.startDate, today);
+
+      const sections = userData.habits.map(h => {
+        let doneDays = 0;
+        const cells = Array.from({ length: 365 }, (_, i) => {
+          const d = dateOfDay(userData.startDate, i);
+          const isFuture = i > todayIdx;
+          const isDone = !isFuture && userData.logs[d] && userData.logs[d][h.id];
+          const isToday = i === todayIdx;
+          if (!isFuture && isDone) doneDays++;
+          let cls = 'day-cell ';
+          if (isFuture) cls += 'future';
+          else if (isToday) cls += isDone ? 'today-done' : 'today-notdone';
+          else cls += isDone ? 'done' : 'not-done';
+          const fd = new Date(d + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+          const click = !isFuture ? `onclick="window._toggleHabit('${h.id}','${d}')"` : '';
+          return `<div class="${cls}" title="${fd}" ${click}></div>`;
+        }).join('');
+        const pct = todayIdx >= 0 ? Math.round(doneDays / (Math.min(todayIdx + 1, 365)) * 100) : 0;
+        return `<div class="grid-section">
+          <div class="grid-habit-title">${h.name}<span class="grid-stats">${doneDays} días · ${pct}%</span></div>
+          <div class="year-grid">${cells}</div>
+        </div>`;
+      }).join('');
+
+      document.getElementById('tab-content').innerHTML = `
+        <div class="legend">
+          <span><span class="legend-dot" style="background:var(--blue)"></span>Completado</span>
+          <span><span class="legend-dot" style="background:var(--red)"></span>No completado</span>
+          <span><span class="legend-dot" style="background:var(--bg2);border:0.5px solid var(--border)"></span>Próximo</span>
+        </div>
+        ${sections}`;
+    }
+
+    function renderArchiveTab() {
+      const cycles = userData.cycles || [];
+      if (!cycles.length) {
+        document.getElementById('tab-content').innerHTML = '<div class="empty">Todavía no completaste ningún ciclo de 365 días.</div>';
+        return;
+      }
+      document.getElementById('tab-content').innerHTML = cycles.map((c, i) => {
+        let total = 0, done = 0;
+        (c.habits || []).forEach(h => {
+          for (let j = 0; j < 365; j++) {
+            const d = dateOfDay(c.startDate, j);
+            total++;
+            if (c.logs && c.logs[d] && c.logs[d][h.id]) done++;
+          }
+        });
+        const pct = total > 0 ? Math.round(done / total * 100) : 0;
+        const sf = new Date(c.startDate + 'T12:00:00').toLocaleDateString('es-AR');
+        const ef = new Date(c.endDate + 'T12:00:00').toLocaleDateString('es-AR');
+        return `<div class="archive-card">
+          <h3 style="margin-bottom:5px">Ciclo ${i + 1}: ${sf} → ${ef}</h3>
+          <p class="subtitle">${(c.habits || []).length} hábitos · ${pct}% de cumplimiento · ${done} días completados</p>
+        </div>`;
+      }).join('');
+    }
+
+    function userChip() {
+      return `<div class="user-row">
+        ${currentUser.photoURL ? `<img src="${currentUser.photoURL}" class="avatar" alt="perfil"/>` : `<div class="avatar-init">${(currentUser.displayName || 'U')[0]}</div>`}
+        <span class="user-name">${(currentUser.displayName || '').split(' ')[0]}</span>
+        <button class="btn btn-icon" id="btn-logout" title="Cerrar sesión"><i class="ti ti-logout"></i></button>
+      </div>`;
+    }
+
+    function bindLogout() {
+      const b = document.getElementById('btn-logout');
+      if (b) b.onclick = () => signOut(auth);
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        app.innerHTML = '<div class="center"><div class="spinner"></div><div class="loading-msg" style="margin-top:8px">Cargando tus datos...</div></div>';
+        await loadUserData();
+        if (!userData.habits.length || !userData.startDate) showSetupScreen();
+        else showMainApp();
+      } else {
+        currentUser = null;
+        showLoginScreen();
+      }
+    });
+  </script>
+</body>
+</html>
