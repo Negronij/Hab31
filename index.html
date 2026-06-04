@@ -1,108 +1,22 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Habitos 365</title>
-  <style>
-    :root { 
-      --font-sans: system-ui, -apple-system, sans-serif; 
-      --color-text-primary: #1a1a1a; 
-      --color-text-secondary: #666; 
-      --color-border-tertiary: #eee; 
-      --border-radius-lg: 12px; 
-      --border-radius-md: 8px; 
-      --color-background-primary: #fff; 
-      --color-background-secondary: #f4f4f4; 
-    }
-    body { font-family: var(--font-sans); background: #f9f9f9; padding: 20px; color: var(--color-text-primary); }
-    .app { max-width: 680px; margin: 0 auto; }
-    .card { background: white; border: 1px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-    button { cursor: pointer; padding: 10px 20px; border-radius: var(--border-radius-md); border: 1px solid #ccc; background: #fff; font-weight: 500; transition: background 0.2s; }
-    button:hover { background: var(--color-background-secondary); }
-    h1 { margin-bottom: 1rem; }
-    .login-container { text-align: center; margin-top: 50px; }
-    .hidden { display: none; }
-  </style>
-</head>
-<body>
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-<div class="app">
-  <!-- Pantalla de Login -->
-  <div id="login-screen" class="card login-container">
-    <h1>Habitos 365</h1>
-    <p style="margin-bottom: 20px; color: var(--color-text-secondary);">Inicia sesión para guardar tus progresos en la nube.</p>
-    <button onclick="window.loginWithGoogle()">Iniciar sesión con Google</button>
-  </div>
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyAVDnttF2E0XwhOiRMQP-TEjf7_h1ybSoA",
+  authDomain: "habitos-bc22e.firebaseapp.com",
+  databaseURL: "https://habitos-bc22e-default-rtdb.firebaseio.com",
+  projectId: "habitos-bc22e",
+  storageBucket: "habitos-bc22e.firebasestorage.app",
+  messagingSenderId: "167460920414",
+  appId: "1:167460920414:web:7f7a39a4e4179fdc49e8cf",
+  measurementId: "G-PM5YZDYEDE"
+};
 
-  <!-- Pantalla Principal -->
-  <div id="main-screen" class="card hidden">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h2 id="user-display">Habitos</h2>
-      <button onclick="window.logout()">Salir</button>
-    </div>
-    <div id="content" style="margin-top:20px;">Cargando tus datos...</div>
-  </div>
-</div>
-
-<script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
-  import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-  import { getFirestore, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
-
-  // NOTA: Para producción en GitHub, sustituye el objeto vacío por tu configuración real de Firebase
-  // que puedes obtener en la consola de Firebase -> Project Settings -> General -> Your SDK setup
-  const firebaseConfig = typeof __firebase_config !== 'undefined' 
-    ? JSON.parse(__firebase_config) 
-    : {
-        apiKey: "TU_API_KEY",
-        authDomain: "TU_PROYECTO.firebaseapp.com",
-        projectId: "habitos-bc22e",
-        storageBucket: "TU_PROYECTO.firebasestorage.app",
-        messagingSenderId: "TU_ID",
-        appId: "TU_APP_ID"
-      };
-
-  const appId = typeof __app_id !== 'undefined' ? __app_id : 'habitos-bc22e';
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  // Funciones globales
-  window.loginWithGoogle = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-    } catch (e) { console.error("Error al iniciar sesión:", e); }
-  };
-
-  window.logout = () => signOut(auth);
-
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      document.getElementById('login-screen').classList.add('hidden');
-      document.getElementById('main-screen').classList.remove('hidden');
-      document.getElementById('user-display').textContent = `Hola, ${user.displayName || 'Usuario'}`;
-      loadData(user.uid);
-    } else {
-      document.getElementById('login-screen').classList.remove('hidden');
-      document.getElementById('main-screen').classList.add('hidden');
-    }
-  });
-
-  function loadData(uid) {
-    const docRef = doc(db, 'artifacts', appId, 'users', uid, 'data', 'habits_config');
-    onSnapshot(docRef, (docSnap) => {
-      const content = document.getElementById('content');
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        content.innerHTML = `<p>Tienes <strong>${data.habits?.length || 0}</strong> hábitos registrados en la nube.</p>`;
-      } else {
-        content.innerHTML = '<p>¡Bienvenido! Empieza a configurar tus hábitos.</p>';
-      }
-    });
-  }
-</script>
-</body>
-</html>
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
